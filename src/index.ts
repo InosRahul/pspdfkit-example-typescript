@@ -1,75 +1,29 @@
 import PSPDFKit from "pspdfkit";
+import { AiFinding, HighlightingUtils } from "./highlight-utils";
+import { AI_FINDING_MOCK } from "./mock";
 
-let instance: unknown = null;
+let instance: any = null;
 
-function load(document: string) {
+async function load(document: string) {
   console.log(`Loading ${document}...`);
-  PSPDFKit.load({
-    document,
-    container: ".container",
-    baseUrl: "",
-    toolbarItems: [
-      {
-        type: "custom",
-        title: "Random annotation",
-        className: "randomAnnotation",
-        onPress: () => {
-          if (!(instance instanceof PSPDFKit.Instance)) return;
+  try {
+    instance = await PSPDFKit.load({
+      document,
+      container: ".container",
+      baseUrl: "",
+      disableWebAssemblyStreaming: true,
+      anonymousComments: false,
+      // isEditableComment: false,
+    });
 
-          // Get page 0 dimensions
-          const { width, height } = instance.pageInfoForIndex(0);
-          // Create a rectangle annotation in page 0 with random position
-          // and dimensions
-          const left =
-            Math.random() *
-            (width - PSPDFKit.Options.MIN_SHAPE_ANNOTATION_SIZE);
-          const top =
-            Math.random() *
-            (height - PSPDFKit.Options.MIN_SHAPE_ANNOTATION_SIZE);
-          const annotationProperties = {
-            boundingBox: new PSPDFKit.Geometry.Rect({
-              left,
-              top,
-              width: Math.random() * (width - left),
-              height: Math.random() * (height - top),
-            }),
-            strokeColor: new PSPDFKit.Color({
-              r: Math.floor(Math.random() * 255),
-              g: Math.floor(Math.random() * 255),
-              b: Math.floor(Math.random() * 255),
-            }),
-            fillColor: new PSPDFKit.Color({
-              r: Math.floor(Math.random() * 255),
-              g: Math.floor(Math.random() * 255),
-              b: Math.floor(Math.random() * 255),
-            }),
-            strokeDashArray: [[1, 1], [3, 3], [6, 6], null][
-              Math.floor(Math.random() * 4)
-            ] as [number, number] | null,
-            strokeWidth: Math.random() * 30,
-          };
-          const annotationClass = [
-            PSPDFKit.Annotations.RectangleAnnotation,
-            PSPDFKit.Annotations.EllipseAnnotation,
-          ][Math.floor(Math.random() * 2)];
-
-          instance.create(
-            new annotationClass({
-              ...annotationProperties,
-              pageIndex: 0,
-            })
-          );
-        },
-      },
-    ],
-  })
-    .then((_instance) => {
-      instance = _instance;
-      _instance.addEventListener("annotations.change", () => {
-        console.log(`${document} loaded!`);
-      });
-    })
-    .catch(console.error);
+    // Call the HighlightingUtils function after the instance is loaded
+    await HighlightingUtils.handleHighlightingAndComments_TEST(
+      instance,
+      AI_FINDING_MOCK as unknown as AiFinding[]
+    );
+  } catch (error) {
+    console.error("Failed to load PSPDFKit instance:", error);
+  }
 }
 
 interface HTMLInputEvent extends Event {
@@ -78,11 +32,12 @@ interface HTMLInputEvent extends Event {
 
 let objectUrl = "";
 
-document.addEventListener("change", function (event: HTMLInputEvent) {
+document.addEventListener("change", async function (event: Event) {
+  const inputEvent = event as HTMLInputEvent;
   if (
-    event.target &&
-    event.target.className === "chooseFile" &&
-    event.target.files instanceof FileList
+    inputEvent.target &&
+    inputEvent.target.className === "chooseFile" &&
+    inputEvent.target.files instanceof FileList
   ) {
     PSPDFKit.unload(".container");
 
@@ -90,9 +45,10 @@ document.addEventListener("change", function (event: HTMLInputEvent) {
       URL.revokeObjectURL(objectUrl);
     }
 
-    objectUrl = URL.createObjectURL(event.target.files[0]);
-    load(objectUrl);
+    objectUrl = URL.createObjectURL(inputEvent.target.files[0]);
+    await load(objectUrl);
   }
-});
+} as EventListener);
 
-load("example.pdf");
+// Initial load of the example PDF
+load("example_2.pdf");

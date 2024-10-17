@@ -31,8 +31,8 @@ const filesToCopy = [
   },
   // Example PDF.
   {
-    from: "./assets/example.pdf",
-    to: "./example.pdf",
+    from: "./assets/example_2.pdf",
+    to: "./example_2.pdf",
   },
 ];
 
